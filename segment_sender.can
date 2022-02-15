@@ -1,0 +1,104 @@
+/*@!Encoding:1252*/
+includes
+{
+ 
+}
+
+variables
+{
+   message 0x100 txmsg1 = {dlc=8};
+  int datasize;
+  int sequence_number;
+  int count;
+  msTimer STmin;
+}
+
+on start
+{
+ write("Tx: started"); 
+ write("Tx: Segmented data transfer initiated");
+  write("Tx: press 'r'- transmit more than 7 bytes of data");
+  datasize = 15;
+  count = 0;
+  
+}
+
+
+on key 'r'
+{
+  txmsg1.byte(0)=0x10;
+  txmsg1.byte(1)=0x0F;
+   txmsg1.byte(2)=count++;
+  txmsg1.byte(3)=count++;
+  txmsg1.byte(4)=count++;
+  txmsg1.byte(5)=count++;
+  txmsg1.byte(6)=count++;
+  txmsg1.byte(7)=count++;
+  datasize = datasize-6;
+  write("Tx:pending bytes to be sent = %d",datasize);
+  output(txmsg1);
+}
+  
+  on message 0x200
+{
+  write("Tx:Flow control frame recieved");
+  if((this.byte(0)==0x30)&& this.byte(1)==0x00)  
+  {
+    sequence_number =1;
+   if(this.byte(2) > 0 && this.byte(2)<=0x7F) 
+  {
+    setTimerCyclic(STmin,this.byte(2));
+  }
+    else
+    {
+      setTimerCyclic(STmin,100);
+    }
+  }
+}
+
+on timer STmin
+{
+  if (datasize > 0)
+  {
+    txmsg1.byte(0) = 2<<4 | sequence_number;
+    txmsg1.byte(1) = count++;
+      txmsg1.byte(2) = count++;
+      txmsg1.byte(3) = count++;
+      txmsg1.byte(4) = count++;
+      txmsg1.byte(5) = count++;
+     txmsg1.byte(6) = count++;
+     txmsg1.byte(7) = count++;
+    
+   write("Tx:frame sent = %X\n",txmsg1.byte(0));
+    write("Tx:Pending bytes to be sent = %d",datasize);
+    datasize=datasize-7;
+    output(txmsg1);
+    sequence_number++;
+    if(sequence_number == 16)
+ 
+      sequence_number=0;
+    }
+    else
+    {
+      cancelTimer (STmin);
+    }
+
+}
+    
+    
+    
+  
+    
+    
+    
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
